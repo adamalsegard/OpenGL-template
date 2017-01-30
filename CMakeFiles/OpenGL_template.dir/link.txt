@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11 -lGL   CMakeFiles/OpenGL_template.dir/main.cpp.o  -o build/OpenGL_template 

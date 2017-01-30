@@ -1,0 +1,3 @@
+/home/adam/Documents/Github/OpenGL-template/CMakeFiles/rebuild_cache.dir
+/home/adam/Documents/Github/OpenGL-template/CMakeFiles/edit_cache.dir
+/home/adam/Documents/Github/OpenGL-template/CMakeFiles/OpenGL_template.dir
