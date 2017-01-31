@@ -15,8 +15,14 @@
 #include <rendering/textures.hpp>
 #include <math/randomized.hpp>
 #include <common/Rotator.hpp>
+#include <sstream>
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+
+void setWindowFPS(GLFWwindow *window, float fps);
+
+std::chrono::duration<double> second_accumulator;
+unsigned int frames_last_second;
 
 int main(void)
 {
@@ -32,7 +38,7 @@ int main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); //Should be true?
+    //glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); //Should be GL_TRUE!
 
     // Open window with GLFW
     window = glfwCreateWindow(800, 600, "OpenGL template", NULL, NULL);
@@ -57,8 +63,21 @@ int main(void)
         return -1;
     }
 
+    //Generate rotator and translator
+    MouseRotator rotator;
+    rotator.init(window);
+    KeyTranslator trans;
+    trans.init(window);
+
     // Init size
     int width, height;
+
+    /**************** OpenGL functions ******************/
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
+    //glClearColor(0.0,0.1,0.2,1);
 
     /**************** Callback functions ****************/
     glfwSetKeyCallback(window, key_callback);
@@ -107,6 +126,10 @@ int main(void)
     // Unbind VAO
     glBindVertexArray(0);
 
+    /****************** Textures ************************/
+
+
+
     /****************** FBOs ****************************/
 
 
@@ -118,15 +141,39 @@ int main(void)
 
 
     /****************** Uniform variables ***************/
+    glm::mat4 MV, P;
+    glm::vec3 lDir;
+    glm::mat4 M = glm::mat4(1.0f);
+    float radius = 0.1f;
 
 
+    // FPS
+    std::chrono::high_resolution_clock::time_point tp_last = std::chrono::high_resolution_clock::now();
+    second_accumulator = std::chrono::duration<double>(0);
+    frames_last_second = 0;
 
 
-    /* Loop until the user closes the window */
+    /******************* RENDER LOOP *********************/
     while (!glfwWindowShouldClose(window))
     {
+        /*------------------Update clock and FPS---------------------------------------------*/
+        std::chrono::high_resolution_clock::time_point tp_now = std::chrono::high_resolution_clock::now();
+        std::chrono::high_resolution_clock::duration delta_time = tp_now - tp_last;
+        tp_last = tp_now;
+
+        std::chrono::milliseconds dt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(delta_time);
+
+        float dt_s = 1e-3 * dt_ms.count();
+#ifdef MY_DEBUG
+        std::cout << "Seconds: " << dt_s << "\n";
+#endif
+        //dt_s = std::min(dt_s, 1.0f / 60.0f);
+        /*----------------------------------------------------------------------------------------*/
+
         // Check events
         glfwPollEvents();
+        rotator.poll(window);
+        trans.poll(window);
 
         // Update window size
         glfwGetFramebufferSize(window, &width, &height);
@@ -149,6 +196,17 @@ int main(void)
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
+
+        /*---------------------- FPS DISPLAY HANDLING ------------------------------------*/
+        ++frames_last_second;
+        second_accumulator += delta_time;
+        if (second_accumulator.count() >= 1.0) {
+            float newFPS = static_cast<float>( frames_last_second / second_accumulator.count());
+            setWindowFPS(window, newFPS);
+            frames_last_second = 0;
+            second_accumulator = std::chrono::duration<double>(0);
+        }
+        /*--------------------------------------------------------------------------------*/
     }
 
     glfwDestroyWindow(window);
@@ -161,4 +219,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // Close window on ESC
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void setWindowFPS(GLFWwindow *window, float fps) {
+    std::stringstream ss;
+    ss << "FPS: " << fps;
+
+    glfwSetWindowTitle(window, ss.str().c_str());
 }
