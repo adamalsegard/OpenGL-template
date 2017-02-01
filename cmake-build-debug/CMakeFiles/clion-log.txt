@@ -1,0 +1,11 @@
+/home/adam/Programs/cmake-3.6.1/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/adam/Documents/Github/OpenGL-template
+64 bits compiler detected
+-- Could NOT find Vulkan (missing:  VULKAN_LIBRARY VULKAN_INCLUDE_DIR) 
+-- Using X11 for window creation
+-- Found SOIL inc: /usr/local/include
+-- Found SOIL lib: /usr/local/lib/libSOIL.a
+All include dirs: /home/adam/Documents/Github/OpenGL-template/external/glm;/home/adam/Documents/Github/OpenGL-template/include/GL;/usr/local/include;/home/adam/Documents/Github/OpenGL-template/include;/home/adam/Documents/Github/OpenGL-template/kernels
+All libraries: /usr/lib/x86_64-linux-gnu/libGLU.so;/usr/lib/x86_64-linux-gnu/libGL.so;/usr/lib/x86_64-linux-gnu/libGLU.so;/usr/lib/x86_64-linux-gnu/libGLEW.so;glfw;/usr/local/lib/libSOIL.a
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/adam/Documents/Github/OpenGL-template/cmake-build-debug

@@ -3,11 +3,11 @@ project(OpenGL_template)
 
 # 32bit or 64bit
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    MESSAGE(WARNING "64 bits compiler detected")
+    MESSAGE( "64 bits compiler detected")
     SET(EX_PLATFORM 64)
     SET(EX_PLATFORM_NAME "x64")
 else (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    MESSAGE(WARNING "32 bits compiler detected")
+    MESSAGE( "32 bits compiler detected")
     SET(EX_PLATFORM 32)
     SET(EX_PLATFORM_NAME "x86")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -76,12 +76,17 @@ add_subdirectory(${PROJECT_EXT_DIR}/glfw-3.2.1)
 set(ALL_LIBRARIES ${ALL_LIBRARIES} glfw)
 
 
+### SOIL ###
+find_package(SOIL REQUIRED)
+set(ALL_LIBRARIES ${ALL_LIBRARIES} ${SOIL_LIBRARY})
+set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${SOIL_INCLUDE_DIR})
+
 # Lump all external- and project includes into one variable
 set(ALL_INCLUDES ${EXTERNAL_INCLUDE_DIRS} ${PROJECT_INCLUDE_DIR} ${PROJECT_KERNELS_DIR})
 
 # Set the include directories so that #include statements work
 include_directories(${ALL_INCLUDES})
-message(WARNING "All include dirs: ${ALL_INCLUDES}")
+message( "All include dirs: ${ALL_INCLUDES}")
 
 # Get all source files by traversing the source directory recursively
 file(GLOB_RECURSE PROJECT_CPP_FILES ${PROJECT_CPP_DIR}/*.cpp)
@@ -90,4 +95,4 @@ set(SOURCE_FILES main.cpp ${PROJECT_CPP_FILES})
 add_executable(OpenGL_template ${SOURCE_FILES})
 
 target_link_libraries(OpenGL_template ${ALL_LIBRARIES})
-message(WARNING "All libraries: ${ALL_LIBRARIES}")
+message( "All libraries: ${ALL_LIBRARIES}")

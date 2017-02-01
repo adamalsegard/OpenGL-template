@@ -12,7 +12,8 @@
 #include <GLFW/glfw3.h>
 
 #include <rendering/ShaderProgram.hpp>
-#include <rendering/textures.hpp>
+#include <rendering/TextureManager.hpp>
+#include <SOIL.h>
 #include <math/randomized.hpp>
 #include <common/Rotator.hpp>
 #include <sstream>
@@ -73,6 +74,10 @@ int main(void)
     int width, height;
 
     /**************** OpenGL functions ******************/
+    GLint nrAttributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+    std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+
     //glEnable(GL_DEPTH_TEST);
     //glDepthFunc(GL_LESS);
     //glEnable(GL_CULL_FACE);
@@ -85,10 +90,11 @@ int main(void)
 
     /***************** Declare variables ****************/
     GLfloat vertices[] = {
-            0.5f,  0.5f, 0.0f,  // Top Right
-            0.5f, -0.5f, 0.0f,  // Bottom Right
-            -0.5f, -0.5f, 0.0f,  // Bottom Left
-            -0.5f,  0.5f, 0.0f   // Top Left
+            // Positions (XYZ)    // Colors (RGB)     // Texture Coords (ST)
+            0.5f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
+            0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
+            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
+            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Top Left
     };
     GLuint indices[] = {
             0, 1, 3,    // First triangle
@@ -117,17 +123,63 @@ int main(void)
     // Bind correct VBO and specify location (0)
     glBindBuffer(GL_ARRAY_BUFFER, temp_vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, temp_ebo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0); //Vertices
-    // Normals?
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0); //Positions
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat))); // Colors
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat))); //Texture Coords
 
     // Enable all VAOs
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     // Unbind VAO
     glBindVertexArray(0);
 
     /****************** Textures ************************/
 
+    // Load image from file
+    int tex_w, tex_h;
+    unsigned char* tex_image = SOIL_load_image("../textures/container.jpg", &tex_w, &tex_h, 0, SOIL_LOAD_RGB);
+
+    // Generate texture object
+    GLuint texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Bind texture from image
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_w, tex_h, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_image);
+    glGenerateMipmap(GL_TEXTURE_2D); // Automatically generate mipmaps (instead of changing par 2 above)
+
+    // Free image memory
+    SOIL_free_image_data(tex_image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    /*** TEX2 ***/
+    // Load image from file
+    tex_image = SOIL_load_image("../textures/awesomeface.png", &tex_w, &tex_h, 0, SOIL_LOAD_RGB);
+
+    // Generate texture object
+    GLuint texture2;
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Bind texture from image
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_w, tex_h, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_image);
+    glGenerateMipmap(GL_TEXTURE_2D); // Automatically generate mipmaps (instead of changing par 2 above)
+
+    // Free image memory
+    SOIL_free_image_data(tex_image);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
 
     /****************** FBOs ****************************/
@@ -163,7 +215,7 @@ int main(void)
 
         std::chrono::milliseconds dt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(delta_time);
 
-        float dt_s = 1e-3 * dt_ms.count();
+        double dt_s = 1e-3 * dt_ms.count();
 #ifdef MY_DEBUG
         std::cout << "Seconds: " << dt_s << "\n";
 #endif
@@ -185,6 +237,14 @@ int main(void)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_FILL or GL_LINE
 
         /********** Render stuff ***************/
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glUniform1i(glGetUniformLocation(tempShader, "ourTexture1"), 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        glUniform1i(glGetUniformLocation(tempShader, "ourTexture2"), 1);
+
         // Bind VAO
         glBindVertexArray(temp_vao);
 
@@ -208,6 +268,11 @@ int main(void)
         }
         /*--------------------------------------------------------------------------------*/
     }
+
+    // Properly de-allocate all resources once they've outlived their purpose
+    glDeleteVertexArrays(1, &temp_vao);
+    glDeleteBuffers(1, &temp_vbo);
+    glDeleteBuffers(1, &temp_ebo);
 
     glfwDestroyWindow(window);
     glfwTerminate();

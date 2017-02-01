@@ -31,6 +31,9 @@ public:
 
     static const std::string getShaderType(GLuint type);
 
+    GLint MV_Loc, P_Loc, lDir_Loc, camPos_Loc = -1;
+    GLint tmpTex = -1;
+
     ~ShaderProgram();
 
 protected:
