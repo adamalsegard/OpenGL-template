@@ -15,7 +15,7 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DGL_GLEXT_PROTOTYPES")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} -O2")
 #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi")
-
+set_target_properties(${ALL_LIBRARIES} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGLFW_INCLUDE_GLCOREARB")
@@ -63,10 +63,23 @@ set(ALL_LIBRARIES ${ALL_LIBRARIES} ${OPENGL_glu_LIBRARY})
 set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${PROJECT_EXT_DIR}/glm)
 
 ### GLEW ###
-find_package(GLEW REQUIRED)
-set(GLEW_INCLUDE_DIR ${PROJECT_INCLUDE_DIR}/GL)
-set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIR})
-set(ALL_LIBRARIES ${ALL_LIBRARIES} ${GLEW_LIBRARIES})
+if (MINGW) # Windows MinGW example configuration
+    #http://stackoverflow.com/questions/18475234/undefined-references-to-imp-glew-functions-with-mingw-gcc
+    # If we use .lib we need to #define GLEW_STATIC, if .dll do not define static!
+    set(GLEW_DIR ${PROJECT_EXT_DIR}/glew)
+    set(GLEW_INCLUDE_DIR ${GLEW_DIR}/include)
+    #set(GLEW_LIBRARIES ${GLEW_DIR}/lib/Release/x64/glew32s.lib)
+    #set(GLEW_LIBRARIES "C:/Windows/System32/glew32.dll")
+    set(GLEW_LIBRARIES ${GLEW_DIR}/bin/Release/x64/glew32.dll)
+
+    set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIR})
+    set(ALL_LIBRARIES ${ALL_LIBRARIES} ${GLEW_LIBRARIES})
+elseif (UNIX) # Linux, Apple or Cygwin
+    find_package(GLEW REQUIRED)
+    set(GLEW_INCLUDE_DIR ${PROJECT_INCLUDE_DIR}/GL)
+    set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIR})
+    set(ALL_LIBRARIES ${ALL_LIBRARIES} ${GLEW_LIBRARIES})
+endif(MINGW)
 
 ### GLFW ###
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)

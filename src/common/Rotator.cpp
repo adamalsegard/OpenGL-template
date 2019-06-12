@@ -15,11 +15,11 @@ void KeyTranslator::poll(GLFWwindow *window) {
 	lastTime = currentTime;
 
 	if(glfwGetKey(window, GLFW_KEY_RIGHT)) {
-		horizontal += elapsedTime*5.0; //Move right with speed 5*dt
+		horizontal += elapsedTime*2.0; //Move right with speed 5*dt
 	}
 
 	if(glfwGetKey(window, GLFW_KEY_LEFT)) {
-		horizontal -= elapsedTime*5.0; //Move left with speed 5*dt
+		horizontal -= elapsedTime*2.0; //Move left with speed 5*dt
 
 	}
 

@@ -2,8 +2,10 @@
 #include <chrono>
 #include <iomanip>
 
+// GLM, header-only
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // OpenGL Extension Wrangler, must be included before GLFW
 #include <GL/glew.h>
@@ -69,6 +71,7 @@ int main(void)
     rotator.init(window);
     KeyTranslator trans;
     trans.init(window);
+    glm::mat4 VRotY, VRotX, VTrans;
 
     // Init size
     int width, height;
@@ -78,7 +81,7 @@ int main(void)
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     //glDepthFunc(GL_LESS);
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_BACK);
@@ -89,17 +92,61 @@ int main(void)
 
 
     /***************** Declare variables ****************/
-    GLfloat vertices[] = {
+    /*GLfloat vertices[] = { // Square
             // Positions (XYZ)    // Colors (RGB)     // Texture Coords (ST)
             0.5f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
             0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
             -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
             -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Top Left
+    };*/
+    GLfloat vertices[] = { // Cube
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
     GLuint indices[] = {
             0, 1, 3,    // First triangle
             1, 2, 3     // Second triangle
     };
+
 
     /****************** EBOs ****************************/
     GLuint temp_ebo;
@@ -107,12 +154,12 @@ int main(void)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, temp_ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    /****************** VBOs ****************************/
 
+    /****************** VBOs ****************************/
     GLuint temp_vbo;
     glGenBuffers(1, &temp_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, temp_vbo); //Can only bind one object to each buffer type
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
     // How much will it move: not = GL_STATIC_DRAW, a lot = GL_DYNAMIC_DRAW, every render = GL_STREAM_DRAW
 
 
@@ -123,14 +170,14 @@ int main(void)
     // Bind correct VBO and specify location (0)
     glBindBuffer(GL_ARRAY_BUFFER, temp_vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, temp_ebo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0); //Positions
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat))); // Colors
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat))); //Texture Coords
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0); //Positions
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat))); // Colors
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat))); //Texture Coords
 
     // Enable all VAOs
     glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
 
     // Unbind VAO
     glBindVertexArray(0);
@@ -189,16 +236,20 @@ int main(void)
     /****************** Shaders *************************/
     // Declare shader and bind it
     ShaderProgram tempShader("../shaders/template.vert", "", "", "", "../shaders/template.frag");
-    tempShader();
 
+    tempShader.MV_Loc = glGetUniformLocation(tempShader, "MV");
+    tempShader.P_Loc = glGetUniformLocation(tempShader, "P");
 
     /****************** Uniform variables ***************/
-    glm::mat4 MV, P;
+    glm::mat4 MV, V, P;
     glm::vec3 lDir;
     glm::mat4 M = glm::mat4(1.0f);
     float radius = 0.1f;
 
+    //M = glm::rotate(M, -55.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 
+
+    /******************* Other Stuff ********************/
     // FPS
     std::chrono::high_resolution_clock::time_point tp_last = std::chrono::high_resolution_clock::now();
     second_accumulator = std::chrono::duration<double>(0);
@@ -226,18 +277,42 @@ int main(void)
         glfwPollEvents();
         rotator.poll(window);
         trans.poll(window);
+        //printf("phi = %6.2f, theta = %6.2f\n", rotator.phi, rotator.theta);
 
         // Update window size
         glfwGetFramebufferSize(window, &width, &height);
         glViewport(0, 0, width, height);
 
+        // Update camera
+        VRotX = glm::rotate(M, rotator.phi, glm::vec3(0.0f, 1.0f, 0.0f)); //Rotation about y-axis
+        VRotY = glm::rotate(M, rotator.theta, glm::vec3(1.0f, 0.0f, 0.0f)); //Rotation about x-axis
+        VTrans = glm::translate(M, glm::vec3(trans.horizontal, 0.0f, trans.zoom));
+
+        glm::vec4 camPos = VRotX * VRotY * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+        V = VTrans * glm::lookAt(glm::vec3(camPos), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+        MV = V*M;
+        P = glm::perspective(45.0f, (float)width/(float)height, 0.1f, 100.0f);
+
+        //Calculate light direction
+        lDir = glm::vec3(1.0f, -1.0f, 1.0f);
+
         // OpenGL settings
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_FILL or GL_LINE
 
         /********** Render stuff ***************/
+        // Bind Framebuffer
 
+        // Bind shader
+        tempShader();
+
+        // Send Uniforms
+        glUniformMatrix4fv(tempShader.MV_Loc, 1, GL_FALSE, glm::value_ptr(MV));
+        glUniformMatrix4fv(tempShader.P_Loc, 1, GL_FALSE, glm::value_ptr(P));
+
+        // Bind textures
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glUniform1i(glGetUniformLocation(tempShader, "ourTexture1"), 0);
@@ -248,8 +323,9 @@ int main(void)
         // Bind VAO
         glBindVertexArray(temp_vao);
 
-        //glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // Draw elements
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // Unbind VAO
         glBindVertexArray(0);
