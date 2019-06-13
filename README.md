@@ -4,7 +4,7 @@ An OpenGL template to be used for new projects so I don't have to set up a new o
 ###### Uses GLFW for window handling, GLEW for extensions and SOIL for texture files. 
 
 Aims for modern OpenGL (core 3.3 with some implementations up to core 4.5).
-Developed with CLion in Linux environment. Cmakelist included but not tested on Windows or MacOS at this point.
+Developed with CLion in Linux environment, but should build on Windows and MacOS with CMake.
 
 
 #### Preperations
@@ -16,7 +16,6 @@ GLFW is built with project. GLEW and SOIL needs to be downloaded and compiled lo
 * Shader program
 * Texture manager (SOIL)
 * Math library GLM
-
 
 
 #### Coming up next: 
