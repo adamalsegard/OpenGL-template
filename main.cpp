@@ -17,15 +17,17 @@
 #include <rendering/TextureManager.hpp>
 #include <SOIL.h>
 #include <math/randomized.hpp>
-#include <common/Rotator.hpp>
+#include <common/Navigation.hpp>
 #include <sstream>
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 void setWindowFPS(GLFWwindow *window, float fps);
 
 std::chrono::duration<double> second_accumulator;
 unsigned int frames_last_second;
+float fov = 45.0f;
 
 int main(void)
 {
@@ -41,10 +43,11 @@ int main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); //Should be GL_TRUE!
+    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
     // Open window with GLFW
-    window = glfwCreateWindow(800, 600, "OpenGL template", NULL, NULL);
+    //window = glfwCreateWindow(800, 600, "OpenGL template", NULL, NULL);
+    window = glfwCreateWindow(1600, 1600, "OpenGL template", NULL, NULL);
     if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -71,7 +74,9 @@ int main(void)
     rotator.init(window);
     KeyTranslator trans;
     trans.init(window);
-    glm::mat4 VRotY, VRotX, VTrans;
+
+    // Hide cursor and capture it (FPS-game)
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Init size
     int width, height;
@@ -89,7 +94,7 @@ int main(void)
 
     /**************** Callback functions ****************/
     glfwSetKeyCallback(window, key_callback);
-
+    glfwSetScrollCallback(window, scroll_callback);
 
     /***************** Declare variables ****************/
     /*GLfloat vertices[] = { // Square
@@ -244,9 +249,6 @@ int main(void)
     glm::mat4 MV, V, P;
     glm::vec3 lDir;
     glm::mat4 M = glm::mat4(1.0f);
-    float radius = 0.1f;
-
-    //M = glm::rotate(M, -55.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 
 
     /******************* Other Stuff ********************/
@@ -284,15 +286,20 @@ int main(void)
         glViewport(0, 0, width, height);
 
         // Update camera
-        VRotX = glm::rotate(M, rotator.phi, glm::vec3(0.0f, 1.0f, 0.0f)); //Rotation about y-axis
-        VRotY = glm::rotate(M, rotator.theta, glm::vec3(1.0f, 0.0f, 0.0f)); //Rotation about x-axis
-        VTrans = glm::translate(M, glm::vec3(trans.horizontal, 0.0f, trans.zoom));
+        glm::vec3 cameraFront;
+        cameraFront.x = cos(glm::radians(rotator.pitch)) * cos(glm::radians(rotator.yaw));
+        cameraFront.y = sin(glm::radians(rotator.pitch));
+        cameraFront.z = cos(glm::radians(rotator.pitch)) * sin(glm::radians(rotator.yaw));
 
-        glm::vec4 camPos = VRotX * VRotY * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-        V = VTrans * glm::lookAt(glm::vec3(camPos), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
+
+        glm::vec3 cameraPos = trans.horizontal * cameraRight + trans.zoom * cameraFront;
+        cameraPos.y = 0.0f;
+        V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         MV = V*M;
-        P = glm::perspective(45.0f, (float)width/(float)height, 0.1f, 100.0f);
+        P = glm::perspective(glm::radians(fov), (float)width/(float)height, 0.1f, 100.0f);
 
         //Calculate light direction
         lDir = glm::vec3(1.0f, -1.0f, 1.0f);
@@ -355,11 +362,24 @@ int main(void)
     exit(EXIT_SUCCESS);
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
-{
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
     // Close window on ESC
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    if(fov >= 1.0f && fov <= 120.0f) {
+        fov -= yoffset * 5.0f;
+    }
+    if(fov <= 1.0f) {
+        fov = 1.0f;
+    }
+
+    if(fov >= 120.0f) {
+        fov = 120.0f;
+    }
+
 }
 
 void setWindowFPS(GLFWwindow *window, float fps) {

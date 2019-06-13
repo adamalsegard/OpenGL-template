@@ -10,11 +10,12 @@
 class KeyTranslator {
 
 public:
-	float horizontal;
-	float zoom;
+    float horizontal;
+    float vertical; // TODO
+    float zoom;
 
 private:
-	double lastTime;
+    double lastTime;
 
 public:
     void init(GLFWwindow *window);
@@ -24,14 +25,16 @@ public:
 class MouseRotator {
 
 public:
-	float phi;
-	float theta;
+    float yaw;
+    float pitch;
+    float roll; // TODO
 
 private:
-	double lastX;
-	double lastY;
-	int lastLeft;
-	int lastRight;
+    double lastX;
+    double lastY;
+    int lastLeft;
+    int lastRight; // TODO
+    const float SENSITIVITY = 0.1f;
 
 public:
     void init(GLFWwindow *window);
