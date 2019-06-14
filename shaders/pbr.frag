@@ -7,10 +7,16 @@ in vec3 vNormal;
 out vec4 FragColor;
 
 // material parameters
-uniform vec3  albedo;
-uniform float metallic;
-uniform float roughness;
-uniform float ao;
+//uniform vec3  albedo;
+//uniform float metallic;
+//uniform float roughness;
+//uniform float ao;
+
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D metallicMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D aoMap;
 
 // lights
 uniform vec3 lightPos[4];
@@ -24,10 +30,20 @@ float DistributionGGX(vec3 N, vec3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness);
 vec3 FresnelSchlick(float cosTheta, vec3 F0);
+vec3 getNormalFromMap();
 
-void main()
-{
-    vec3 N = normalize(vNormal);
+void main() {
+
+    // Get uniform values from textures
+    // Albedo textures are often authred in sRGB space so we need to convert it
+    // to linear space before using it. AO maps sometimes also have to be converted.
+    vec3 albedo     = pow(texture(albedoMap, vTexCoords).rgb, vec3(2.2));
+    vec3 normal     = getNormalFromMap();
+    float metallic  = texture(metallicMap, vTexCoords).r;
+    float roughness = texture(roughnessMap, vTexCoords).r;
+    float ao        = texture(aoMap, vTexCoords).r;
+
+    vec3 N = normalize(normal);
     vec3 V = normalize(camPos - vWorldPos);
 
     // Pre-compute F0 (reflectance at normal incident angle) for both
@@ -126,4 +142,20 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 // cosTheta is the dot product between surface normal and view direction (n dot v)
 vec3 FresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 getNormalFromMap() {
+    vec3 tangentNormal = texture(normalMap, vTexCoords).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(vWorldPos);
+    vec3 Q2  = dFdy(vWorldPos);
+    vec2 st1 = dFdx(vTexCoords);
+    vec2 st2 = dFdy(vTexCoords);
+
+    vec3 N = normalize(vNormal);
+    vec3 T = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
 }

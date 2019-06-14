@@ -5,13 +5,21 @@
 
 ShaderProgram::ShaderProgram(std::string vertex_shader_filename, std::string fragment_shader_filename) {
 
+    Init(vertex_shader_filename, fragment_shader_filename);
+}
+
+void ShaderProgram::Init(std::string vertex_shader_filename, std::string fragment_shader_filename) {
+
     if (vertex_shader_filename != "") {
         auto v_source = FileReader::ReadFromFile(vertex_shader_filename);
         AttachShader(GL_VERTEX_SHADER, v_source);
+        vsSource = vertex_shader_filename;
+
     }
     if (fragment_shader_filename != "") {
         auto f_source = FileReader::ReadFromFile(fragment_shader_filename);
         AttachShader(GL_FRAGMENT_SHADER, f_source);
+        fsSource = fragment_shader_filename;
     }
 
     //Link shaders
@@ -91,7 +99,7 @@ ShaderProgram::~ShaderProgram() {
 }
 
 GLuint ShaderProgram::AttachShader(GLuint shaderType, std::string source) {
-    GLuint sh = compile(shaderType, source.c_str());
+    GLuint sh = Compile(shaderType, source.c_str());
     shader_programs_.push_back(sh);
 
     std::cout << "Attached shader of type: '" << getShaderType(shaderType) << "'\n";
@@ -149,7 +157,7 @@ const std::string ShaderProgram::getShaderType(GLuint type) {
     return name;
 }
 
-GLuint ShaderProgram::compile(GLuint type, GLchar const *source) {
+GLuint ShaderProgram::Compile(GLuint type, GLchar const *source) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
@@ -166,4 +174,13 @@ GLuint ShaderProgram::compile(GLuint type, GLchar const *source) {
         exit(EXIT_FAILURE);
     }
     return shader;
+}
+
+void ShaderProgram::Reload() {
+    for (GLuint shader_program : shader_programs_) {
+        glDeleteShader(shader_program);
+    }
+    glDeleteProgram(prog);
+
+    Init(vsSource, fsSource);
 }

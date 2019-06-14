@@ -29,6 +29,7 @@ void renderSphere();
 std::chrono::duration<double> second_accumulator;
 unsigned int frames_last_second;
 float fov = 45.0f;
+bool shaderIsDirty = false;
 
 int main(void)
 {
@@ -195,7 +196,7 @@ int main(void)
     /****************** Textures ************************/
 
     // Load image from file
-    int tex_w, tex_h;
+    /*int tex_w, tex_h;
     unsigned char* tex_image = SOIL_load_image("../textures/container.jpg", &tex_w, &tex_h, 0, SOIL_LOAD_RGB);
 
     // Generate texture object
@@ -214,10 +215,10 @@ int main(void)
 
     // Free image memory
     SOIL_free_image_data(tex_image);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);*/
 
     /*** TEX2 ***/
-    // Load image from file
+    /*// Load image from file
     tex_image = SOIL_load_image("../textures/awesomeface.png", &tex_w, &tex_h, 0, SOIL_LOAD_RGB);
 
     // Generate texture object
@@ -236,7 +237,16 @@ int main(void)
 
     // Free image memory
     SOIL_free_image_data(tex_image);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);*/
+
+
+    unsigned int roughnessTex   = loadTextureSOIL("../textures/Iron-Rusted/rustediron2_roughness.png");
+    unsigned int normalTex      = loadTextureSOIL("../textures/Iron-Rusted/rustediron2_normal.png");
+    unsigned int metallicTex    = loadTextureSOIL("../textures/Iron-Rusted/rustediron2_metallic.png");
+    unsigned int albedoTex      = loadTextureSOIL("../textures/Iron-Rusted/rustediron2_basecolor.png");
+    unsigned int aoTex          = loadTextureSOIL("../textures/Iron-Rusted/rustediron2_ao.png"); // TODO: Change!
+
+
 
 
     /****************** FBOs ****************************/
@@ -251,10 +261,11 @@ int main(void)
     pbrShader.V_Loc = glGetUniformLocation(pbrShader, "V");
     pbrShader.P_Loc = glGetUniformLocation(pbrShader, "P");
 
-    pbrShader.albedo_Loc = glGetUniformLocation(pbrShader, "albedo");
-    pbrShader.metallic_Loc = glGetUniformLocation(pbrShader, "metallic");
-    pbrShader.roughness_Loc = glGetUniformLocation(pbrShader, "roughness");
-    pbrShader.ao_Loc = glGetUniformLocation(pbrShader, "ao");
+    pbrShader.albedo_Loc = glGetUniformLocation(pbrShader, "albedoMap");
+    pbrShader.metallic_Loc = glGetUniformLocation(pbrShader, "metallicMap");
+    pbrShader.roughness_Loc = glGetUniformLocation(pbrShader, "roughnessMap");
+    pbrShader.ao_Loc = glGetUniformLocation(pbrShader, "aoMap");
+    pbrShader.normal_Loc = glGetUniformLocation(pbrShader, "normalMap");
     pbrShader.camPos_Loc = glGetUniformLocation(pbrShader, "camPos");
 
     /****************** Uniform variables ***************/
@@ -337,22 +348,36 @@ int main(void)
         // Bind Framebuffer
 
         // Bind shader
+        if (shaderIsDirty) {
+            pbrShader.Reload();
+            shaderIsDirty = false;
+        }
+
         pbrShader();
 
         // Send static uniforms
         glUniformMatrix4fv(pbrShader.V_Loc, 1, GL_FALSE, glm::value_ptr(V));
         glUniformMatrix4fv(pbrShader.P_Loc, 1, GL_FALSE, glm::value_ptr(P));
-        glUniform3fv(pbrShader.albedo_Loc, 1, glm::value_ptr(albedo));
-        glUniform1f(pbrShader.ao_Loc, ao);
+        //glUniform3fv(pbrShader.albedo_Loc, 1, glm::value_ptr(albedo));
+        //glUniform1f(pbrShader.ao_Loc, ao);
         glUniform3fv(pbrShader.camPos_Loc, 1, glm::value_ptr(cameraPos));
 
         // Bind textures
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glUniform1i(glGetUniformLocation(pbrShader, "ourTexture1"), 0);
+        glBindTexture(GL_TEXTURE_2D, albedoTex);
+        glUniform1i(pbrShader.albedo_Loc, 0);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-        glUniform1i(glGetUniformLocation(pbrShader, "ourTexture2"), 1);
+        glBindTexture(GL_TEXTURE_2D, normalTex);
+        glUniform1i(pbrShader.normal_Loc, 1);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, metallicTex);
+        glUniform1i(pbrShader.metallic_Loc, 2);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, roughnessTex);
+        glUniform1i(pbrShader.roughness_Loc, 3);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, aoTex);
+        glUniform1i(pbrShader.ao_Loc, 4);
 
         // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
         glm::mat4 model = glm::mat4(1.0f);
@@ -374,8 +399,8 @@ int main(void)
 
                 // Send variable uniforms
                 glUniformMatrix4fv(pbrShader.M_Loc, 1, GL_FALSE, glm::value_ptr(M));
-                glUniform1f(pbrShader.metallic_Loc, metallic);
-                glUniform1f(pbrShader.roughness_Loc, roughness);
+                //glUniform1f(pbrShader.metallic_Loc, metallic);
+                //glUniform1f(pbrShader.roughness_Loc, roughness);
                 renderSphere();
             }
         }
@@ -430,8 +455,13 @@ int main(void)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
     // Close window on ESC
-    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+    if(key == GLFW_KEY_F5 && action == GLFW_PRESS) {
+        shaderIsDirty = true;
+    }
+
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {

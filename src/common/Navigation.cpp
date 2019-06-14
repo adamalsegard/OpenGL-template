@@ -2,7 +2,7 @@
 
 void KeyTranslator::init(GLFWwindow *window) {
      horizontal = 0.0;
-     zoom = -5.0;
+     zoom = -15.0;
      lastTime = glfwGetTime();
 };
 
@@ -15,20 +15,20 @@ void KeyTranslator::poll(GLFWwindow *window) {
 	lastTime = currentTime;
 
 	if(glfwGetKey(window, GLFW_KEY_RIGHT)) {
-		horizontal += elapsedTime * 2.5f; //Move right
+		horizontal += elapsedTime * 5.5f; //Move right
 	}
 
 	if(glfwGetKey(window, GLFW_KEY_LEFT)) {
-		horizontal -= elapsedTime * 2.5f; //Move left
+		horizontal -= elapsedTime * 5.5f; //Move left
 
 	}
 
 	if(glfwGetKey(window, GLFW_KEY_UP)) {
-		zoom += elapsedTime * 2.5f; // Zoom in
+		zoom += elapsedTime * 5.5f; // Zoom in
 	}
 
 	if(glfwGetKey(window, GLFW_KEY_DOWN)) {
-		zoom -= elapsedTime * 2.5f; // Zoom out
+		zoom -= elapsedTime * 5.5f; // Zoom out
 	}
 }
 

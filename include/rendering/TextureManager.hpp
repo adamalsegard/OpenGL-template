@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include <GL/glew.h>
+#include <SOIL.h>
 
 GLuint makeBO(GLenum type, void* data, GLsizei size, int accessFlags);
 
@@ -16,3 +17,5 @@ char* loadFile(char* name);
 GLuint genFloatTexture(float *data, int width, int height);
 
 float* loadPGM(const char* fileName, int w, int h);
+
+unsigned int loadTextureSOIL(char const *path);

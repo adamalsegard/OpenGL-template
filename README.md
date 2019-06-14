@@ -21,3 +21,10 @@ GLFW is built with project. GLEW and SOIL needs to be downloaded and compiled lo
 #### Coming up next: 
 * Navigation class
 * Complete TextureManager class
+
+TODO: 
+- Add init & render function for triangle, cube, sphere
+- Add SendUniform function to Shader function
+- Find materials at https://freepbr.com/materials/rusted-iron-pbr-metal-material-alt/
+- Fix the Texture Manager class!
+- Fix recompiling of shader

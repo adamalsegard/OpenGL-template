@@ -40,11 +40,12 @@ public:
 
     static const std::string getShaderType(GLuint type);
 
-    GLint MV_Loc, M_Loc, V_Loc, P_Loc, lDir_Loc, camPos_Loc = -1;
-    GLint tmpTex = -1;
-    GLint albedo_Loc, metallic_Loc, roughness_Loc, ao_Loc = -1;
+    GLint M_Loc, V_Loc, P_Loc, camPos_Loc = -1;
+    GLint albedo_Loc, metallic_Loc, roughness_Loc, ao_Loc, normal_Loc = -1;
 
     ~ShaderProgram();
+
+    void Reload();
 
 protected:
     GLuint AttachShader(GLuint shaderType, std::string source);
@@ -55,5 +56,12 @@ private:
     std::vector<GLuint> shader_programs_;
     GLuint prog;
 
-    GLuint compile(GLuint type, GLchar const *source);
+    std::string vsSource;
+    std::string tcsSource;
+    std::string tesSource;
+    std::string gsSource;
+    std::string fsSource;
+
+    GLuint Compile(GLuint type, GLchar const *source);
+    void Init(std::string vertex_shader_filename, std::string fragment_shader_filename);
 };
