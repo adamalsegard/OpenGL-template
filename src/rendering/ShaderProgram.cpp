@@ -3,6 +3,50 @@
 
 #include <memory>
 
+ShaderProgram::ShaderProgram(std::string vertex_shader_filename, std::string fragment_shader_filename) {
+
+    if (vertex_shader_filename != "") {
+        auto v_source = FileReader::ReadFromFile(vertex_shader_filename);
+        AttachShader(GL_VERTEX_SHADER, v_source);
+    }
+    if (fragment_shader_filename != "") {
+        auto f_source = FileReader::ReadFromFile(fragment_shader_filename);
+        AttachShader(GL_FRAGMENT_SHADER, f_source);
+    }
+
+    //Link shaders
+    ConfigureShaderProgram();
+
+    //Detach shaders after successful linking
+    for (GLuint shader_program : shader_programs_) {
+        glDetachShader(prog, shader_program);
+    }
+}
+
+/*ShaderProgram::ShaderProgram(std::string vertex_shader_filename, std::string geometry_shader_filename,
+                             std::string fragment_shader_filename) {
+
+    if (vertex_shader_filename != "") {
+        auto v_source = FileReader::ReadFromFile(vertex_shader_filename);
+        AttachShader(GL_VERTEX_SHADER, v_source);
+    }
+    if (geometry_shader_filename != "") {
+        auto g_source = FileReader::ReadFromFile(geometry_shader_filename);
+        AttachShader(GL_GEOMETRY_SHADER, g_source);
+    }
+    if (fragment_shader_filename != "") {
+        auto f_source = FileReader::ReadFromFile(fragment_shader_filename);
+        AttachShader(GL_FRAGMENT_SHADER, f_source);
+    }
+
+    //Link shaders
+    ConfigureShaderProgram();
+
+    //Detach shaders after successful linking
+    for (GLuint shader_program : shader_programs_) {
+        glDetachShader(prog, shader_program);
+    }
+}
 
 ShaderProgram::ShaderProgram(std::string vertex_shader_filename, std::string tessellation_control_shader_filename,
                              std::string tessellation_eval_shader_filename, std::string geometry_shader_filename,
@@ -36,7 +80,7 @@ ShaderProgram::ShaderProgram(std::string vertex_shader_filename, std::string tes
     for (GLuint shader_program : shader_programs_) {
         glDetachShader(prog, shader_program);
     }
-}
+}*/
 
 ShaderProgram::~ShaderProgram() {
     for (GLuint shader_program : shader_programs_) {

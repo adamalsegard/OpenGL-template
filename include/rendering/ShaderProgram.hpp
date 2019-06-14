@@ -12,12 +12,21 @@
 
 class ShaderProgram {
 public:
+    /// Constructs a GLSL shader program with V/F-shaders located in the specified files
+    ShaderProgram(std::string vertex_shader_filename = "",
+                  std::string fragment_shader_filename = "");
+
+    /// Constructs a GLSL shader program with V/G/F-shaders located in the specified files
+    /*ShaderProgram(std::string vertex_shader_filename = "",
+                  std::string geometry_shader_filename = "",
+                  std::string fragment_shader_filename = "");
+
     /// Constructs a GLSL shader program with V/TC/TE/G/F-shaders located in the specified files
     ShaderProgram(std::string vertex_shader_filename = "",
                   std::string tessellation_control_shader_filename = "",
                   std::string tessellation_eval_shader_filename = "",
                   std::string geometry_shader_filename = "",
-                  std::string fragment_shader_filename = "");
+                  std::string fragment_shader_filename = "");*/
 
     /// Get the GLuint corresponding to the OpenGL shader program
     inline operator GLuint() {
@@ -31,8 +40,9 @@ public:
 
     static const std::string getShaderType(GLuint type);
 
-    GLint MV_Loc, P_Loc, lDir_Loc, camPos_Loc = -1;
+    GLint MV_Loc, M_Loc, V_Loc, P_Loc, lDir_Loc, camPos_Loc = -1;
     GLint tmpTex = -1;
+    GLint albedo_Loc, metallic_Loc, roughness_Loc, ao_Loc = -1;
 
     ~ShaderProgram();
 

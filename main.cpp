@@ -24,6 +24,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 void setWindowFPS(GLFWwindow *window, float fps);
+void renderSphere();
 
 std::chrono::duration<double> second_accumulator;
 unsigned int frames_last_second;
@@ -152,6 +153,10 @@ int main(void)
             1, 2, 3     // Second triangle
     };
 
+    int nrRows    = 7;
+    int nrColumns = 7;
+    float spacing = 2.5;
+    
 
     /****************** EBOs ****************************/
     GLuint temp_ebo;
@@ -240,16 +245,40 @@ int main(void)
 
     /****************** Shaders *************************/
     // Declare shader and bind it
-    ShaderProgram tempShader("../shaders/template.vert", "", "", "", "../shaders/template.frag");
+    ShaderProgram pbrShader("../shaders/pbr.vert", "../shaders/pbr.frag");
 
-    tempShader.MV_Loc = glGetUniformLocation(tempShader, "MV");
-    tempShader.P_Loc = glGetUniformLocation(tempShader, "P");
+    pbrShader.M_Loc = glGetUniformLocation(pbrShader, "M");
+    pbrShader.V_Loc = glGetUniformLocation(pbrShader, "V");
+    pbrShader.P_Loc = glGetUniformLocation(pbrShader, "P");
+
+    pbrShader.albedo_Loc = glGetUniformLocation(pbrShader, "albedo");
+    pbrShader.metallic_Loc = glGetUniformLocation(pbrShader, "metallic");
+    pbrShader.roughness_Loc = glGetUniformLocation(pbrShader, "roughness");
+    pbrShader.ao_Loc = glGetUniformLocation(pbrShader, "ao");
+    pbrShader.camPos_Loc = glGetUniformLocation(pbrShader, "camPos");
 
     /****************** Uniform variables ***************/
-    glm::mat4 MV, V, P;
+    glm::mat4 MV, M, V, P;
     glm::vec3 lDir;
-    glm::mat4 M = glm::mat4(1.0f);
 
+    glm::vec3 albedo = glm::vec3(0.5f, 0.0f, 0.0f);
+    float ao = 1.0f;
+    float roughness;
+    float metallic;
+
+    // lights
+    glm::vec3 lightPositions[] = {
+            glm::vec3(-10.0f,  10.0f, 10.0f),
+            glm::vec3( 10.0f,  10.0f, 10.0f),
+            glm::vec3(-10.0f, -10.0f, 10.0f),
+            glm::vec3( 10.0f, -10.0f, 10.0f),
+    };
+    glm::vec3 lightColors[] = {
+            glm::vec3(300.0f, 300.0f, 300.0f),
+            glm::vec3(300.0f, 300.0f, 300.0f),
+            glm::vec3(300.0f, 300.0f, 300.0f),
+            glm::vec3(300.0f, 300.0f, 300.0f)
+    };
 
     /******************* Other Stuff ********************/
     // FPS
@@ -279,7 +308,6 @@ int main(void)
         glfwPollEvents();
         rotator.poll(window);
         trans.poll(window);
-        //printf("phi = %6.2f, theta = %6.2f\n", rotator.phi, rotator.theta);
 
         // Update window size
         glfwGetFramebufferSize(window, &width, &height);
@@ -298,11 +326,7 @@ int main(void)
         cameraPos.y = 0.0f;
         V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-        MV = V*M;
         P = glm::perspective(glm::radians(fov), (float)width/(float)height, 0.1f, 100.0f);
-
-        //Calculate light direction
-        lDir = glm::vec3(1.0f, -1.0f, 1.0f);
 
         // OpenGL settings
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -313,29 +337,71 @@ int main(void)
         // Bind Framebuffer
 
         // Bind shader
-        tempShader();
+        pbrShader();
 
-        // Send Uniforms
-        glUniformMatrix4fv(tempShader.MV_Loc, 1, GL_FALSE, glm::value_ptr(MV));
-        glUniformMatrix4fv(tempShader.P_Loc, 1, GL_FALSE, glm::value_ptr(P));
+        // Send static uniforms
+        glUniformMatrix4fv(pbrShader.V_Loc, 1, GL_FALSE, glm::value_ptr(V));
+        glUniformMatrix4fv(pbrShader.P_Loc, 1, GL_FALSE, glm::value_ptr(P));
+        glUniform3fv(pbrShader.albedo_Loc, 1, glm::value_ptr(albedo));
+        glUniform1f(pbrShader.ao_Loc, ao);
+        glUniform3fv(pbrShader.camPos_Loc, 1, glm::value_ptr(cameraPos));
 
         // Bind textures
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
-        glUniform1i(glGetUniformLocation(tempShader, "ourTexture1"), 0);
+        glUniform1i(glGetUniformLocation(pbrShader, "ourTexture1"), 0);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        glUniform1i(glGetUniformLocation(tempShader, "ourTexture2"), 1);
+        glUniform1i(glGetUniformLocation(pbrShader, "ourTexture2"), 1);
 
-        // Bind VAO
-        glBindVertexArray(temp_vao);
+        // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
+        glm::mat4 model = glm::mat4(1.0f);
+        for (int row = 0; row < nrRows; ++row)
+        {
+            metallic = (float)row / (float)nrRows;
+            for (int col = 0; col < nrColumns; ++col)
+            {
+                // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
+                // on direct lighting.
+                roughness = glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f);
 
-        // Draw elements
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                M = glm::mat4(1.0f);
+                M = glm::translate(model, glm::vec3(
+                        (col - (nrColumns / 2)) * spacing,
+                        (row - (nrRows / 2)) * spacing,
+                        0.0f
+                ));
 
-        // Unbind VAO
-        glBindVertexArray(0);
+                // Send variable uniforms
+                glUniformMatrix4fv(pbrShader.M_Loc, 1, GL_FALSE, glm::value_ptr(M));
+                glUniform1f(pbrShader.metallic_Loc, metallic);
+                glUniform1f(pbrShader.roughness_Loc, roughness);
+                renderSphere();
+            }
+        }
+
+
+
+        // render light source (simply re-render sphere at light positions)
+        // this looks a bit off as we use the same shader, but it'll make their positions obvious and
+        // keeps the codeprint small.
+        for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
+        {
+            glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
+            newPos = lightPositions[i];
+
+            M = glm::mat4(1.0f);
+            M = glm::translate(model, newPos);
+
+            // Send variable uniforms
+            glUniformMatrix4fv(pbrShader.M_Loc, 1, GL_FALSE, glm::value_ptr(M));
+            std::string lightPos_Loc = "lightPos[" + std::to_string(i) + "]";
+            std::string lightColor_Loc = "lightColor[" + std::to_string(i) + "]";
+            glUniform3fv(glGetUniformLocation(pbrShader, lightPos_Loc.c_str()), 1, glm::value_ptr(newPos));
+            glUniform3fv(glGetUniformLocation(pbrShader, lightColor_Loc.c_str()), 1, glm::value_ptr(lightColors[i]));
+
+            renderSphere();
+        }
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
@@ -387,4 +453,102 @@ void setWindowFPS(GLFWwindow *window, float fps) {
     ss << "FPS: " << fps;
 
     glfwSetWindowTitle(window, ss.str().c_str());
+}
+
+
+// renders (and builds at first invocation) a sphere
+// -------------------------------------------------
+unsigned int sphereVAO = 0;
+unsigned int indexCount;
+void renderSphere()
+{
+    if (sphereVAO == 0)
+    {
+        glGenVertexArrays(1, &sphereVAO);
+
+        unsigned int vbo, ebo;
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
+
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec2> uv;
+        std::vector<glm::vec3> normals;
+        std::vector<unsigned int> indices;
+
+        const unsigned int X_SEGMENTS = 64;
+        const unsigned int Y_SEGMENTS = 64;
+        const float PI = 3.14159265359;
+        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+        {
+            for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+            {
+                float xSegment = (float)x / (float)X_SEGMENTS;
+                float ySegment = (float)y / (float)Y_SEGMENTS;
+                float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+                float yPos = std::cos(ySegment * PI);
+                float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+
+                positions.push_back(glm::vec3(xPos, yPos, zPos));
+                uv.push_back(glm::vec2(xSegment, ySegment));
+                normals.push_back(glm::vec3(xPos, yPos, zPos));
+            }
+        }
+
+        bool oddRow = false;
+        for (int y = 0; y < Y_SEGMENTS; ++y)
+        {
+            if (!oddRow) // even rows: y == 0, y == 2; and so on
+            {
+                for (int x = 0; x <= X_SEGMENTS; ++x)
+                {
+                    indices.push_back(y       * (X_SEGMENTS + 1) + x);
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                }
+            }
+            else
+            {
+                for (int x = X_SEGMENTS; x >= 0; --x)
+                {
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                    indices.push_back(y       * (X_SEGMENTS + 1) + x);
+                }
+            }
+            oddRow = !oddRow;
+        }
+        indexCount = indices.size();
+
+        std::vector<float> data;
+        for (int i = 0; i < positions.size(); ++i)
+        {
+            data.push_back(positions[i].x);
+            data.push_back(positions[i].y);
+            data.push_back(positions[i].z);
+            if (uv.size() > 0)
+            {
+                data.push_back(uv[i].x);
+                data.push_back(uv[i].y);
+            }
+            if (normals.size() > 0)
+            {
+                data.push_back(normals[i].x);
+                data.push_back(normals[i].y);
+                data.push_back(normals[i].z);
+            }
+        }
+        glBindVertexArray(sphereVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        float stride = (3 + 2 + 3) * sizeof(float);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(5 * sizeof(float)));
+    }
+
+    glBindVertexArray(sphereVAO);
+    glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
